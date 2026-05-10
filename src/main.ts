@@ -1,4 +1,4 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin} from 'obsidian';
+import {App, setIcon, Editor, MarkdownView, Modal, Notice, Plugin} from 'obsidian';
 import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
 
 // Remember to rename these classes and interfaces!
@@ -9,11 +9,20 @@ export default class MyPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
+		// This creates an icon in the left ribbon.'
+		let isIconA = true;
+        
+        // 1. Add the initial icon
+        const ribbonIcon = this.addRibbonIcon('star', 'Toggle Icon', () => {
+            // 2. Modify icon on click
+			ribbonIcon.classList.toggle('my-plugin-icon-active', isIconA);
+            if (isIconA) {
+                setIcon(ribbonIcon, 'moon'); // New Icon
+            } else {
+                setIcon(ribbonIcon, 'star'); // Original Icon
+            }
+            isIconA = !isIconA;
+        });
 
 		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
 		const statusBarItemEl = this.addStatusBarItem();
@@ -61,7 +70,7 @@ export default class MyPlugin extends Plugin {
 
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
+		this.registerDomEvent(document, 'click', () => {
 			new Notice("Click");
 		});
 
