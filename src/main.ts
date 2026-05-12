@@ -1,4 +1,4 @@
-import {App, setIcon, Editor, MarkdownView, Modal, Notice, Plugin} from 'obsidian';
+import {App, setIcon, Editor, MarkdownView, Modal, Notice, Plugin, Setting} from 'obsidian';
 import {DEFAULT_SETTINGS, PixelPickerSettings, PixelPickerSettingTab} from "./settings";
 
 // Remember to rename these classes and interfaces!
@@ -33,7 +33,9 @@ export default class PixelPicker extends Plugin {
 			id: 'open-modal-simple',
 			name: 'Open modal (simple)',
 			callback: () => {
-				new PixelPickerModal(this.app).open();
+				new PixelPickerModal(this.app, (result) => {
+  					new Notice(`Hello, ${result}!`);
+				}).open();
 			}
 		});
 		// This adds an editor command that can perform some operation on the current editor instance
@@ -55,7 +57,9 @@ export default class PixelPicker extends Plugin {
 					// If checking is true, we're simply "checking" if the command can be run.
 					// If checking is false, then we want to actually perform the operation.
 					if (!checking) {
-						new PixelPickerModal(this.app).open();
+						new PixelPickerModal(this.app, (result) => {
+  							new Notice(`Hello, ${result}!`);
+						}).open();
 					}
 
 					// This command will only show up in Command Palette when the check function returns true
@@ -89,17 +93,56 @@ export default class PixelPicker extends Plugin {
 }
 
 class PixelPickerModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
+	constructor(app: App, onSubmit: (result: string) => void) {
+    	super(app);
+			this.setTitle('Pixel Picker');
 
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
+	let imageName = '';
+    new Setting(this.contentEl)
+      	.setName('What\'s the filepath of your image?')
+      	.addText((text) =>
+			text.onChange((value) => {
+				imageName = value;
+			}));
+
+	let xCoor = '';
+    new Setting(this.contentEl)
+      	.setName('X coordiate of pixel')
+      	.addText((text) =>
+			text.onChange((value) => {
+				xCoor = value;
+			}));
+
+	let yCoor = '';
+    new Setting(this.contentEl)
+      	.setName('Y coordinate of pixel')
+      	.addText((text) =>
+			text.onChange((value) => {
+				yCoor = value;
+			}));
+
+    new Setting(this.contentEl)
+      	.addButton((btn) =>
+        	btn
+				.setButtonText('Submit')
+				.setCta()
+				.onClick(() => {
+
+					// this.contentEl.empty(); // empty the container on submit
+					const container = this.contentEl.createDiv({ cls: 'my-container-class' });
+					container.createDiv({ text: `Image = ${imageName}`, cls: 'item-class' });
+    				container.createDiv({ text: `X = ${xCoor}`, cls: 'item-class' });
+					container.createDiv({ text: `Y = ${yCoor}`, cls: 'item-class' });
+
+					onSubmit(imageName);
+				}));
+ 	}
+
+	onOpen() {}
 
 	onClose() {
 		const {contentEl} = this;
 		contentEl.empty();
+		new Notice("Closed Modal");
 	}
 }
