@@ -1,4 +1,4 @@
-import {App, setIcon, Editor, MarkdownView, Modal, Notice, Plugin, Setting} from 'obsidian';
+import {App, Editor, MarkdownView, Modal, Notice, Plugin, Setting} from 'obsidian';
 import {DEFAULT_SETTINGS, PixelPickerSettings, PixelPickerSettingTab} from "./settings";
 
 // Remember to rename these classes and interfaces!
@@ -9,19 +9,10 @@ export default class PixelPicker extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		// This creates an icon in the left ribbon.'
-		let isIconA = true;
-        
-        // 1. Add the initial icon
-        const ribbonIcon = this.addRibbonIcon('star', 'Toggle icon', () => {
-            // 2. Modify icon on click
-			ribbonIcon.classList.toggle('my-plugin-icon-active', isIconA);
-            if (isIconA) {
-                setIcon(ribbonIcon, 'moon'); // New Icon
-            } else {
-                setIcon(ribbonIcon, 'star'); // Original Icon
-            }
-            isIconA = !isIconA;
+        this.addRibbonIcon('palette', 'Toggle icon', () => {
+			new PixelPickerModal(this.app, (result) => {
+  				new Notice(`Hello, ${result}!`);
+			}).open();
         });
 
 		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
@@ -95,7 +86,7 @@ export default class PixelPicker extends Plugin {
 class PixelPickerModal extends Modal {
 	constructor(app: App, onSubmit: (result: string) => void) {
     	super(app);
-			this.setTitle('Pixel Picker');
+			this.setTitle('Pixel picker');
 
 	let imageName = '';
     new Setting(this.contentEl)
@@ -143,6 +134,6 @@ class PixelPickerModal extends Modal {
 	onClose() {
 		const {contentEl} = this;
 		contentEl.empty();
-		new Notice("Closed Modal");
+		new Notice("Closed modal");
 	}
 }
