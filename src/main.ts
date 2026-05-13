@@ -1,7 +1,5 @@
-import {App, Modal, Notice, Plugin, Setting} from 'obsidian';
+import {App, TFile, Modal, Notice, Plugin, Setting} from 'obsidian';
 import {DEFAULT_SETTINGS, PixelPickerSettings, PixelPickerSettingTab} from "./settings";
-
-// Remember to rename these classes and interfaces!
 
 export default class PixelPicker extends Plugin {
 	settings: PixelPickerSettings;
@@ -48,6 +46,8 @@ class PixelPickerModal extends Modal {
     	super(app);
 			this.setTitle('Pixel picker');
 
+	// TODO: create containers BEFORE you put the settings input in
+
 	let imageName = '';
     new Setting(this.contentEl)
       	.setName('What\'s the filepath of your image?')
@@ -56,20 +56,30 @@ class PixelPickerModal extends Modal {
 				imageName = value;
 			}));
 
-	let xCoor = '';
+	let xCoor = 0;
     new Setting(this.contentEl)
       	.setName('X coordiate of pixel')
       	.addText((text) =>
 			text.onChange((value) => {
-				xCoor = value;
+					if (!/^\d+$/.test(value)) {
+						new Notice("Invalid input! Please enter only integers.");
+						// TODO: display notification underneath the textbox
+					}else{
+						xCoor = parseInt(value, 10);
+					}
 			}));
 
-	let yCoor = '';
+	let yCoor = 0;
     new Setting(this.contentEl)
       	.setName('Y coordinate of pixel')
       	.addText((text) =>
 			text.onChange((value) => {
-				yCoor = value;
+				if (!/^\d+$/.test(value)) {
+    				new Notice("Invalid input! Please enter only integers.");
+					// TODO: display notification underneath the textbox
+				}else{
+					yCoor = parseInt(value, 10);
+				}
 			}));
 
     new Setting(this.contentEl)
@@ -85,8 +95,52 @@ class PixelPickerModal extends Modal {
     				container.createDiv({ text: `X = ${xCoor}`, cls: 'item-class' });
 					container.createDiv({ text: `Y = ${yCoor}`, cls: 'item-class' });
 
-					onSubmit(imageName);
-				}));
+					onSubmit(imageName);	
+
+					async function getImageColor(imagePath: string, x: number, y: number): Promise<string> {
+						return new Promise((resolve, reject) => {
+
+							const img = new Image();
+							const canvas = document.createElement('canvas');
+							const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+							img.onload = () => {
+
+								canvas.width = img.naturalWidth;
+								canvas.height = img.naturalHeight;
+								ctx?.drawImage(img, 0, 0);
+
+								const pixel = ctx?.getImageData(x, y, 1, 1).data;
+								if (!pixel) {
+									resolve('#000000');
+									return;
+								}
+
+								const [r, g, b] = pixel;
+								const hex = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+								resolve(hex);
+
+						};
+
+						img.onerror = () => reject(new Error("Failed to load image"));
+						img.src = imagePath;
+
+					});
+					}
+
+					void (async () => {
+
+						const file = this.app.vault.getAbstractFileByPath(imageName);
+						if (file instanceof TFile) {
+							const path = this.app.vault.getResourcePath(file);
+							const answer = await getImageColor(path, xCoor, yCoor);
+							container.createDiv({ text: `hex = ${answer}`, cls: 'item-class' });
+						}	
+						
+					})().catch(err => console.error("Error in color picker context:", err));
+
+
+				})); 
  	}
 
 	onOpen() {}
