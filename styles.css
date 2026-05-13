@@ -3,4 +3,11 @@
     color: var(--background-primary);
 }
 
-.my-plugin-icon-inactive {}
+.entry{
+    padding: 10px;
+}
+
+.correction{
+    color: var(--text-error);
+    font-size: 10px;
+}

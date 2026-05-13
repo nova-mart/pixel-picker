@@ -46,10 +46,20 @@ class PixelPickerModal extends Modal {
     	super(app);
 			this.setTitle('Pixel picker');
 
-	// TODO: create containers BEFORE you put the settings input in
+	// divs
+	const contUserInputs = this.contentEl.createDiv({ cls: 'inputs' });
+		const setName = contUserInputs.createDiv({ cls: 'entry' });
+			//const errName = contUserInputs.createDiv({ cls: 'correction' });
+		const setX = contUserInputs.createDiv({ cls: 'entry' });
+			const errX = contUserInputs.createDiv({ cls: 'correction' });
+		const setY = contUserInputs.createDiv({ cls: 'entry' });
+			const errY = contUserInputs.createDiv({ cls: 'correction' });
+		const submit = contUserInputs.createDiv({ cls: 'entry' });
+	const contUserOutputs = this.contentEl.createDiv({ cls: 'outputs' });
+		const dispHex = contUserOutputs.createDiv({ cls: 'entry' });
 
 	let imageName = '';
-    new Setting(this.contentEl)
+    new Setting(setName)
       	.setName('What\'s the filepath of your image?')
       	.addText((text) =>
 			text.onChange((value) => {
@@ -57,43 +67,37 @@ class PixelPickerModal extends Modal {
 			}));
 
 	let xCoor = 0;
-    new Setting(this.contentEl)
+    new Setting(setX)
       	.setName('X coordiate of pixel')
       	.addText((text) =>
 			text.onChange((value) => {
-					if (!/^\d+$/.test(value)) {
-						new Notice("Invalid input! Please enter only integers.");
-						// TODO: display notification underneath the textbox
+					errX.empty();
+					if (/[a-zA-Z]/.test(value) || /[`!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~]/.test(value)) {
+						errX.textContent = "Invalid input! Please enter integers only.";
 					}else{
 						xCoor = parseInt(value, 10);
 					}
 			}));
 
 	let yCoor = 0;
-    new Setting(this.contentEl)
+    new Setting(setY)
       	.setName('Y coordinate of pixel')
       	.addText((text) =>
 			text.onChange((value) => {
-				if (!/^\d+$/.test(value)) {
-    				new Notice("Invalid input! Please enter only integers.");
-					// TODO: display notification underneath the textbox
+				errY.empty();
+				if (/[a-zA-Z]/.test(value) || /[`!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~]/.test(value)) {
+					errY.textContent = "Invalid input! Please enter integers only.";
 				}else{
 					yCoor = parseInt(value, 10);
 				}
 			}));
 
-    new Setting(this.contentEl)
+    new Setting(submit)
       	.addButton((btn) =>
         	btn
 				.setButtonText('Submit')
 				.setCta()
 				.onClick(() => {
-
-					// this.contentEl.empty(); // empty the container on submit
-					const container = this.contentEl.createDiv({ cls: 'my-container-class' });
-					container.createDiv({ text: `Image = ${imageName}`, cls: 'item-class' });
-    				container.createDiv({ text: `X = ${xCoor}`, cls: 'item-class' });
-					container.createDiv({ text: `Y = ${yCoor}`, cls: 'item-class' });
 
 					onSubmit(imageName);	
 
@@ -134,7 +138,7 @@ class PixelPickerModal extends Modal {
 						if (file instanceof TFile) {
 							const path = this.app.vault.getResourcePath(file);
 							const answer = await getImageColor(path, xCoor, yCoor);
-							container.createDiv({ text: `hex = ${answer}`, cls: 'item-class' });
+							dispHex.textContent = `hex = ${answer}`;
 						}	
 						
 					})().catch(err => console.error("Error in color picker context:", err));
