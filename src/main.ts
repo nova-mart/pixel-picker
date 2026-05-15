@@ -56,6 +56,8 @@ class PixelPickerModal extends Modal {
 			const errY = contUserInputs.createDiv({ cls: 'correction' });
 		const submit = contUserInputs.createDiv({ cls: 'entry' });
 	const contUserOutputs = this.contentEl.createDiv({ cls: 'outputs' });
+		const dispImage = contUserOutputs.createDiv({ cls: 'imageDim' });
+		const dispLens = contUserOutputs.createDiv({ cls: 'zoom-lens' });
 		const dispHex = contUserOutputs.createDiv({ cls: 'entry' });
 
 	let imageName = '';
@@ -101,7 +103,13 @@ class PixelPickerModal extends Modal {
 
 					onSubmit(imageName);	
 
-					async function getImageColor(imagePath: string, x: number, y: number): Promise<string> {
+					interface ImageColorResult {
+						color: string;
+						height: number;
+						width: number;
+					}
+
+					async function getImageColor(imagePath: string, x: number, y: number): Promise<ImageColorResult> {
 						return new Promise((resolve, reject) => {
 
 							const img = new Image();
@@ -116,18 +124,37 @@ class PixelPickerModal extends Modal {
 
 								const pixel = ctx?.getImageData(x, y, 1, 1).data;
 								if (!pixel) {
-									resolve('#000000');
+									resolve({
+										color: '#000000',
+										height: 0,
+										width: 0
+									});
 									return;
 								}
 
-								const [r, g, b] = pixel;
+								const r = Number(pixel[0]) || 0;
+								const g = Number(pixel[1]) || 0;
+								const b = Number(pixel[2]) || 0;
+
 								const hex = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-								resolve(hex);
+								resolve({
+									color: hex,
+									height: img.naturalHeight,
+									width: img.naturalHeight
+								});
 
-						};
+							};
 
-						img.onerror = () => reject(new Error("Failed to load image"));
-						img.src = imagePath;
+							img.onerror = () => reject(new Error("Failed to load image"));
+							img.src = imagePath;
+
+							dispImage.empty(); // clear previous image
+							dispImage.append(img); // display new image
+
+							/* eslint-disable */
+							dispLens.style.backgroundImage = `url('${img.src}')`; // set lens image
+							dispLens.style.display = 'block'; // make lens visible
+							/* eslint-enable */
 
 					});
 					}
@@ -136,9 +163,26 @@ class PixelPickerModal extends Modal {
 
 						const file = this.app.vault.getAbstractFileByPath(imageName);
 						if (file instanceof TFile) {
+
 							const path = this.app.vault.getResourcePath(file);
 							const answer = await getImageColor(path, xCoor, yCoor);
-							dispHex.textContent = `hex = ${answer}`;
+
+							dispHex.style.color = answer.color;
+							dispHex.textContent = `hex = ${answer.color}`;
+							
+							// rescale the selected coordinates from the original image to the displayed image in modal
+							// center the lens on selected pixel
+							dispLens.style.left = `${xCoor/answer.width*dispImage.clientWidth - dispLens.offsetWidth / 2}px`;
+							dispLens.style.top = `${yCoor/answer.height*dispImage.clientHeight - dispLens.offsetHeight / 2}px`;
+
+							// zoom on the original image rescaling the chosen coordinates to show pixel data
+							// center the lens on selected pixel
+							let zoomLevel = 5;
+							dispLens.style.backgroundSize = `${answer.width * zoomLevel}px ${answer.height * zoomLevel}px`;
+							const bgX = (xCoor * zoomLevel) - (dispLens.offsetWidth / 2);
+							const bgY = (yCoor * zoomLevel) - (dispLens.offsetHeight / 2);
+							dispLens.style.backgroundPosition = `-${bgX}px -${bgY}px`;
+							dispLens.style.borderColor = answer.color;
 						}	
 						
 					})().catch(err => console.error("Error in color picker context:", err));
