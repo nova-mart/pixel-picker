@@ -61,12 +61,30 @@ class PixelPickerModal extends Modal {
 		const dispHex = contUserOutputs.createDiv({ cls: 'entry' });
 
 	let imageName = '';
-    new Setting(setName)
-      	.setName('What\'s the filepath of your image?')
-      	.addText((text) =>
-			text.onChange((value) => {
+	new Setting(setName)
+        .setName("Choose a file")
+        .setDesc("Pick a file from your vault to proceed")
+        .addDropdown((dropdown) => {
+
+			const allFiles: TFile[] = this.app.vault.getFiles();
+
+			const IMAGE_EXTS = ['png', 'jpg', 'jpeg', 'webp', 'svg'];
+			const imageFiles = allFiles.filter(file => 
+				IMAGE_EXTS.includes(file.extension.toLowerCase())
+			);
+
+			dropdown.addOption('', 'None selected');
+            dropdown.setValue(allFiles[0]?.path || "");
+
+            imageFiles.forEach((file) => {
+                dropdown.addOption(file.path, file.name);
+            });
+
+            dropdown.onChange(async (value) => {
 				imageName = value;
-			}));
+            });
+
+        });
 
 	let xCoor = 0;
     new Setting(setX)
