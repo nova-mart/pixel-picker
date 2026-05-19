@@ -50,10 +50,9 @@ class PixelPickerModal extends Modal {
 	// divs
 	const contUserInputs = this.contentEl.createDiv({ cls: 'inputs' });
 		const setName = contUserInputs.createDiv({ cls: 'entry' });
-			//const errName = contUserInputs.createDiv({ cls: 'correction' });
-		const setX = contUserInputs.createDiv({ cls: 'entry' });
+		const setX = contUserInputs.createDiv({ cls: 'coor' });
 			const errX = contUserInputs.createDiv({ cls: 'correction' });
-		const setY = contUserInputs.createDiv({ cls: 'entry' });
+		const setY = contUserInputs.createDiv({ cls: 'coor' });
 			const errY = contUserInputs.createDiv({ cls: 'correction' });
 		const submit = contUserInputs.createDiv({ cls: 'entry' });
 	const contUserOutputs = this.contentEl.createDiv({ cls: 'outputs' });
@@ -70,11 +69,26 @@ class PixelPickerModal extends Modal {
             text.setPlaceholder("path/to/image.png");
 			text.inputEl.style.width = "100%"; // eslint-disable-line
             
-            new ImageSuggest(this.app, text.inputEl);
+            new ImageSuggest(this.app, text.inputEl, (selectedTargetValue) => { // on dropdown selection
+				
+				imageName = selectedTargetValue;
+				text.setValue(selectedTargetValue); // reflect selection to user
+				/* eslint-disable */
+				setX.style.display = 'block'; // display XY options now that a valid image was selected
+				setY.style.display = 'block';
+				/* eslint-enable */
 
-            text.onChange((value) => {
-				imageName = value;
-            });
+       		});
+
+			text.onChange(() => { // hide XY options as there is no valid image selected
+
+				imageName = '';
+				/* eslint-disable */
+				setX.style.display = 'none';
+				setY.style.display = 'none';
+				/* eslint-enable */
+
+			});
 
     });
 

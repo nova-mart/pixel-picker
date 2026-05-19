@@ -7,6 +7,11 @@
     padding: 10px;
 }
 
+.coor {
+    padding: 10px;
+    display: none;
+}
+
 .correction{
     color: var(--text-error);
     font-size: 10px;

@@ -2,12 +2,14 @@ import { AbstractInputSuggest, App, TFile } from "obsidian";
 
 export class ImageSuggest extends AbstractInputSuggest<TFile> {
 
+    private onDropSelect: (selectedPath: string) => void;
     private inputElement: HTMLInputElement;
     private imageExtensions = ['png', 'jpg', 'jpeg', 'webp', 'svg'];
 
-    constructor(app: App, textInputEl: HTMLInputElement) {
+    constructor(app: App, textInputEl: HTMLInputElement, onSelect: (selectedPath: string) => void) {
         super(app, textInputEl);
         this.inputElement = textInputEl;
+        this.onDropSelect = onSelect;
     }
 
     getSuggestions(inputStr: string): TFile[] {
@@ -36,6 +38,10 @@ export class ImageSuggest extends AbstractInputSuggest<TFile> {
         this.inputElement.value = file.path;
         this.inputElement.trigger("input"); // force notify the event listener
         this.close();
+
+        if (this.onDropSelect) { // check existance before sending results to modal
+            this.onDropSelect(file.path);
+        }
 
     }
     
