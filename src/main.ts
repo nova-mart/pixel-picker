@@ -1,5 +1,6 @@
 import {App, TFile, Modal, Notice, Plugin, Setting} from 'obsidian';
 import {DEFAULT_SETTINGS, PixelPickerSettings, PixelPickerSettingTab} from "./settings";
+import {ImageSuggest} from "./suggest";
 
 export default class PixelPicker extends Plugin {
 	settings: PixelPickerSettings;
@@ -62,29 +63,20 @@ class PixelPickerModal extends Modal {
 
 	let imageName = '';
 	new Setting(setName)
-        .setName("Choose a file")
-        .setDesc("Pick a file from your vault to proceed")
-        .addDropdown((dropdown) => {
+        .setName("Select image")
+        .setDesc("Type to search for vault images...")
+        .addText((text) => {
 
-			const allFiles: TFile[] = this.app.vault.getFiles();
+            text.setPlaceholder("path/to/image.png");
+			text.inputEl.style.width = "100%"; // eslint-disable-line
+            
+            new ImageSuggest(this.app, text.inputEl);
 
-			const IMAGE_EXTS = ['png', 'jpg', 'jpeg', 'webp', 'svg'];
-			const imageFiles = allFiles.filter(file => 
-				IMAGE_EXTS.includes(file.extension.toLowerCase())
-			);
-
-			dropdown.addOption('', 'None selected');
-            dropdown.setValue(allFiles[0]?.path || "");
-
-            imageFiles.forEach((file) => {
-                dropdown.addOption(file.path, file.name);
-            });
-
-            dropdown.onChange(async (value) => {
+            text.onChange((value) => {
 				imageName = value;
             });
 
-        });
+    });
 
 	let xCoor = 0;
     new Setting(setX)
