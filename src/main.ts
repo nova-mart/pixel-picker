@@ -49,13 +49,14 @@ class PixelPickerModal extends Modal {
 
 	// divs
 	const contUserInputs = this.contentEl.createDiv({ cls: 'inputs' });
+
 		const setName = contUserInputs.createDiv({ cls: 'entry' });
 		const setX = contUserInputs.createDiv({ cls: 'coor' });
-			const errX = contUserInputs.createDiv({ cls: 'correction' });
 		const setY = contUserInputs.createDiv({ cls: 'coor' });
-			const errY = contUserInputs.createDiv({ cls: 'correction' });
 		const submit = contUserInputs.createDiv({ cls: 'entry' });
-	const contUserOutputs = this.contentEl.createDiv({ cls: 'outputs' });
+	
+		const contUserOutputs = this.contentEl.createDiv({ cls: 'outputs' });
+
 		const dispImage = contUserOutputs.createDiv({ cls: 'imageDim' });
 		const dispLens = contUserOutputs.createDiv({ cls: 'zoom-lens' });
 		const dispHex = contUserOutputs.createDiv({ cls: 'entry' });
@@ -93,30 +94,44 @@ class PixelPickerModal extends Modal {
     });
 
 	let xCoor = 0;
-    new Setting(setX)
+    const xSett = new Setting(setX)
       	.setName('X coordiate of pixel')
       	.addText((text) =>
 			text.onChange((value) => {
-					errX.empty();
-					if (/[a-zA-Z]/.test(value) || /[`!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~]/.test(value)) {
-						errX.textContent = "Invalid input! Please enter integers only.";
-					}else{
-						xCoor = parseInt(value, 10);
-					}
+
+				if (/[a-zA-Z]/.test(value) || /[`!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~]/.test(value)) {
+					updateSettingStatus(true, xSett);
+				} else {
+					xCoor = parseInt(value, 10);
+					updateSettingStatus(false, xSett);
+				}
+
 			}));
 
 	let yCoor = 0;
-    new Setting(setY)
+    const ySett = new Setting(setY)
       	.setName('Y coordinate of pixel')
       	.addText((text) =>
 			text.onChange((value) => {
-				errY.empty();
+
 				if (/[a-zA-Z]/.test(value) || /[`!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~]/.test(value)) {
-					errY.textContent = "Invalid input! Please enter integers only.";
-				}else{
+					updateSettingStatus(true, ySett);
+				} else {
 					yCoor = parseInt(value, 10);
+					updateSettingStatus(false, ySett);
 				}
+
 			}));
+
+	function updateSettingStatus(hasError: boolean, aCoorEntry: Setting) {
+		if (hasError) {
+			aCoorEntry.setDesc("Invalid input! Please enter integers only.");
+			aCoorEntry.descEl.style.color = "var(--text-error)"; // eslint-disable-line
+		} else {
+			aCoorEntry.setDesc("");
+			aCoorEntry.descEl.style.color = "var(--text-muted)"; // eslint-disable-line
+		}
+	}
 
     new Setting(submit)
       	.addButton((btn) =>

@@ -12,11 +12,6 @@
     display: none;
 }
 
-.correction{
-    color: var(--text-error);
-    font-size: 10px;
-}
-
 .imageDim {
     width: 50%;
     height: 50%;
