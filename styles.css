@@ -17,7 +17,9 @@
     height: 50%;
     overflow: hidden;
     display: inline-block;      /* only as wide as contents */
-    padding-left: 10px;
+
+    /*padding-left: 10px;         /* TODO: adjust the lens offset to reflect the padding
+    padding-top: 30px;*/
 }
 
 .imageDim img {

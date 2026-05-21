@@ -61,7 +61,10 @@ class PixelPickerModal extends Modal {
 		const dispHex = contUserOutputs.createDiv({ cls: 'entry' });
 
 	let imageName = '';
-	new Setting(setName)
+	let maxH = 0;
+	let maxW = 0;
+
+		new Setting(setName)
         .setName("Select image")
         .setDesc("Type to search for vault images...")
         .addText((text) => {
@@ -78,7 +81,27 @@ class PixelPickerModal extends Modal {
 				setY.style.display = 'block';
 				/* eslint-enable */
 
-       		});
+				const runAsyncLogic = async () => { // implicit promise #2
+					try {
+						const file = app.vault.getAbstractFileByPath(imageName);
+						if (file instanceof TFile) {
+							const path = app.vault.getResourcePath(file);
+							const dimentions = await getImageColor(path, xCoor, yCoor); // catch promise #1
+
+							ySett.setDesc(`The maximum value you can enter is ${dimentions.height}`);
+							maxH = dimentions.height;
+							xSett.setDesc(`The maximum value you can enter is ${dimentions.width}`);
+							maxW = dimentions.width;
+						}	
+					} catch (err) {
+						console.error("Failed to get Dimensions:", err);
+					}
+				};
+
+				void runAsyncLogic(); // drop implicit promise #2
+				return; // explicitlly return nothing - no hanging promises left
+
+			});
 
 			text.onChange(() => { // hide XY options as there is no valid image selected
 
@@ -90,60 +113,92 @@ class PixelPickerModal extends Modal {
 
 			});
 
-			void (async () => {
-				await updateLensPosition(0, 0, this.app);
-			})();
-
-    });
+		});
 
 	let xCoor = 0;
     const xSett = new Setting(setX)
-      	.setName('X coordiate of pixel')
-      	.addText((text) =>
-			text.onChange((value) => {
+      	.setName(`X coordiate of pixel`)
+		.setDesc(" ")
+      	.addText((text) => text
+			.setPlaceholder(`0`)
+			.onChange((value) => {
 
 				if (/[a-zA-Z]/.test(value) || /[`!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~]/.test(value)) {
-					updateSettingStatus(true, xSett);
+					updateSettingStatus(1, xSett, true);
 				} else if (value === "") {
 					xCoor = 0;
+					updateSettingStatus(3, xSett, true);
 				} else {
 					xCoor = parseInt(value, 10);
-					updateSettingStatus(false, xSett);
-					void (async () => {
-						await updateLensPosition(xCoor, yCoor, this.app);
-					})();
+
+					if ( 0 <= xCoor && xCoor <= maxW ) { // valid selection
+
+						updateSettingStatus(3, xSett, true);
+						void (async () => {
+							await updateLensPosition(xCoor, yCoor, this.app);
+						})();
+
+					} else {
+						updateSettingStatus(2, xSett, true, xCoor)
+					}
+
 				}
 
 			}));
 
 	let yCoor = 0;
     const ySett = new Setting(setY)
-      	.setName('Y coordinate of pixel')
-      	.addText((text) =>
-			text.onChange((value) => {
+      	.setName(`Y coordinate of pixel`)
+		.setDesc(" ")
+      	.addText((text) => text
+			.setPlaceholder(`0`)
+			.onChange((value) => {
 
 				if (/[a-zA-Z]/.test(value) || /[`!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~]/.test(value)) {
-					updateSettingStatus(true, ySett);
+					updateSettingStatus(1, ySett, false);
 				} else if (value === "") {
 					yCoor = 0;
+					updateSettingStatus(3, ySett, false);
 				} else {
 					yCoor = parseInt(value, 10);
-					updateSettingStatus(false, ySett);
-					void (async () => {
-						await updateLensPosition(xCoor, yCoor, this.app);
-					})();
+
+					if ( 0 <= yCoor && yCoor <= maxH ) { // valid selection
+
+						updateSettingStatus(3, ySett, false);
+						void (async () => {
+							await updateLensPosition(xCoor, yCoor, this.app);
+						})();
+
+					} else {
+						updateSettingStatus(2, ySett, false, yCoor)
+					}
+
 				}
 
 			}));
 
-	function updateSettingStatus(hasError: boolean, aCoorEntry: Setting) {
-		if (hasError) {
+	function updateSettingStatus(hasError: number, aCoorEntry: Setting, isX: boolean, ooB: number = 0) {
+
+		if (hasError == 1) { // NaN input
+
 			aCoorEntry.setDesc("Invalid input! Please enter integers only.");
 			aCoorEntry.descEl.style.color = "var(--text-error)"; // eslint-disable-line
-		} else {
-			aCoorEntry.setDesc("");
+
+		} else if (hasError == 2) { // out of bound coordinate
+
+			aCoorEntry.setDesc(`${ooB} is out of bounds, enter a value between 0 and ${maxW}`);
+			aCoorEntry.descEl.style.color = "var(--text-error)"; // eslint-disable-line
+
+		} else { // restore default description
+
+			if (isX) {
+				aCoorEntry.setDesc(`The maximum value you can enter is ${maxW}`);
+			} else {
+				aCoorEntry.setDesc(`The maximum value you can enter is ${maxH}`);
+			}
 			aCoorEntry.descEl.style.color = "var(--text-muted)"; // eslint-disable-line
 		}
+
 	}
 
 	interface ImageColorResult {
