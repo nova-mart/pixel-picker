@@ -53,7 +53,6 @@ class PixelPickerModal extends Modal {
 		const setName = contUserInputs.createDiv({ cls: 'entry' });
 		const setX = contUserInputs.createDiv({ cls: 'coor' });
 		const setY = contUserInputs.createDiv({ cls: 'coor' });
-		const submit = contUserInputs.createDiv({ cls: 'entry' });
 	
 		const contUserOutputs = this.contentEl.createDiv({ cls: 'outputs' });
 
@@ -91,6 +90,10 @@ class PixelPickerModal extends Modal {
 
 			});
 
+			void (async () => {
+				await updateLensPosition(0, 0, this.app);
+			})();
+
     });
 
 	let xCoor = 0;
@@ -101,9 +104,14 @@ class PixelPickerModal extends Modal {
 
 				if (/[a-zA-Z]/.test(value) || /[`!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~]/.test(value)) {
 					updateSettingStatus(true, xSett);
+				} else if (value === "") {
+					xCoor = 0;
 				} else {
 					xCoor = parseInt(value, 10);
 					updateSettingStatus(false, xSett);
+					void (async () => {
+						await updateLensPosition(xCoor, yCoor, this.app);
+					})();
 				}
 
 			}));
@@ -116,9 +124,14 @@ class PixelPickerModal extends Modal {
 
 				if (/[a-zA-Z]/.test(value) || /[`!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~]/.test(value)) {
 					updateSettingStatus(true, ySett);
+				} else if (value === "") {
+					yCoor = 0;
 				} else {
 					yCoor = parseInt(value, 10);
 					updateSettingStatus(false, ySett);
+					void (async () => {
+						await updateLensPosition(xCoor, yCoor, this.app);
+					})();
 				}
 
 			}));
@@ -133,101 +146,93 @@ class PixelPickerModal extends Modal {
 		}
 	}
 
-    new Setting(submit)
-      	.addButton((btn) =>
-        	btn
-				.setButtonText('Submit')
-				.setCta()
-				.onClick(() => {
+	interface ImageColorResult {
+		color: string;
+		height: number;
+		width: number;
+	}
 
-					onSubmit(imageName);	
+	async function getImageColor(imagePath: string, x: number, y: number): Promise<ImageColorResult> {
+		return new Promise((resolve, reject) => {
 
-					interface ImageColorResult {
-						color: string;
-						height: number;
-						width: number;
-					}
+			const img = new Image();
+			const canvas = document.createElement('canvas');
+			const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-					async function getImageColor(imagePath: string, x: number, y: number): Promise<ImageColorResult> {
-						return new Promise((resolve, reject) => {
+			img.onload = () => {
 
-							const img = new Image();
-							const canvas = document.createElement('canvas');
-							const ctx = canvas.getContext('2d', { willReadFrequently: true });
+				canvas.width = img.naturalWidth;
+				canvas.height = img.naturalHeight;
+				ctx?.drawImage(img, 0, 0);
 
-							img.onload = () => {
-
-								canvas.width = img.naturalWidth;
-								canvas.height = img.naturalHeight;
-								ctx?.drawImage(img, 0, 0);
-
-								const pixel = ctx?.getImageData(x, y, 1, 1).data;
-								if (!pixel) {
-									resolve({
-										color: '#000000',
-										height: 0,
-										width: 0
-									});
-									return;
-								}
-
-								const r = Number(pixel[0]) || 0;
-								const g = Number(pixel[1]) || 0;
-								const b = Number(pixel[2]) || 0;
-
-								const hex = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-								resolve({
-									color: hex,
-									height: img.naturalHeight,
-									width: img.naturalHeight
-								});
-
-							};
-
-							img.onerror = () => reject(new Error("Failed to load image"));
-							img.src = imagePath;
-
-							dispImage.empty(); // clear previous image
-							dispImage.append(img); // display new image
-
-							/* eslint-disable */
-							dispLens.style.backgroundImage = `url('${img.src}')`; // set lens image
-							dispLens.style.display = 'block'; // make lens visible
-							/* eslint-enable */
-
+				const pixel = ctx?.getImageData(x, y, 1, 1).data;
+				if (!pixel) {
+					resolve({
+						color: '#000000',
+						height: 0,
+						width: 0
 					});
-					}
+					return;
+				}
 
-					void (async () => {
+				const r = Number(pixel[0]) || 0;
+				const g = Number(pixel[1]) || 0;
+				const b = Number(pixel[2]) || 0;
 
-						const file = this.app.vault.getAbstractFileByPath(imageName);
-						if (file instanceof TFile) {
+				const hex = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+				resolve({
+					color: hex,
+					height: img.naturalHeight,
+					width: img.naturalWidth
+				});
 
-							const path = this.app.vault.getResourcePath(file);
-							const answer = await getImageColor(path, xCoor, yCoor);
+			};
 
-							dispHex.style.color = answer.color;
-							dispHex.textContent = `hex = ${answer.color}`;
-							
-							// rescale the selected coordinates from the original image to the displayed image in modal
-							// center the lens on selected pixel
-							dispLens.style.left = `${xCoor/answer.width*dispImage.clientWidth - dispLens.offsetWidth / 2}px`;
-							dispLens.style.top = `${yCoor/answer.height*dispImage.clientHeight - dispLens.offsetHeight / 2}px`;
+			img.onerror = () => reject(new Error("Failed to load image"));
+			img.src = imagePath;
 
-							// zoom on the original image rescaling the chosen coordinates to show pixel data
-							// center the lens on selected pixel
-							let zoomLevel = 5;
-							dispLens.style.backgroundSize = `${answer.width * zoomLevel}px ${answer.height * zoomLevel}px`;
-							const bgX = (xCoor * zoomLevel) - (dispLens.offsetWidth / 2);
-							const bgY = (yCoor * zoomLevel) - (dispLens.offsetHeight / 2);
-							dispLens.style.backgroundPosition = `-${bgX}px -${bgY}px`;
-							dispLens.style.borderColor = answer.color;
-						}	
-						
-					})().catch(err => console.error("Error in color picker context:", err));
+			dispImage.empty(); // clear previous image
+			dispImage.append(img); // display new image
 
+			/* eslint-disable */
+			dispLens.style.backgroundImage = `url('${img.src}')`; // set lens image
+			dispLens.style.display = 'block'; // make lens visible
+			/* eslint-enable */
 
-				})); 
+	});
+	}
+
+	async function updateLensPosition(x: number, y: number, app: App) {
+    try {
+
+		const file = app.vault.getAbstractFileByPath(imageName);
+		if (file instanceof TFile) {
+
+			const path = app.vault.getResourcePath(file);
+			const answer = await getImageColor(path, xCoor, yCoor);
+
+			dispHex.style.color = answer.color;
+			dispHex.textContent = `hex = ${answer.color}`;
+			
+			// rescale the selected coordinates from the original image to the displayed image in modal
+			// center the lens on selected pixel
+			dispLens.style.left = `${xCoor/answer.width*dispImage.clientWidth - dispLens.offsetWidth / 2}px`;
+			dispLens.style.top = `${yCoor/answer.height*dispImage.clientHeight - dispLens.offsetHeight / 2}px`;
+
+			// zoom on the original image rescaling the chosen coordinates to show pixel data
+			// center the lens on selected pixel
+			let zoomLevel = 5;
+			dispLens.style.backgroundSize = `${answer.width * zoomLevel}px ${answer.height * zoomLevel}px`;
+			const bgX = (xCoor * zoomLevel) - (dispLens.offsetWidth / 2);
+			const bgY = (yCoor * zoomLevel) - (dispLens.offsetHeight / 2);
+			dispLens.style.backgroundPosition = `-${bgX}px -${bgY}px`;
+			dispLens.style.borderColor = answer.color;
+		}	
+		
+	} catch (err) {
+    		console.error("Error in color picker context:", err);
+    }};
+
  	}
 
 	onOpen() {}
